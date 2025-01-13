@@ -6,6 +6,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import csv
 import time
+import random
 
 def cerca_pubblicazioni_scholar(keywords, num_pagine):
     """
@@ -22,7 +23,8 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
     # Configura il webdriver di Selenium (usa opzioni headless per evitare che il browser si apra)
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3") 
+
     try:
         driver = webdriver.Chrome(options=options)
     except Exception as e:
@@ -66,7 +68,7 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
         if next_button and pagina_corrente < num_pagine:
             # Clicca sul pulsante "Avanti" e attendi che la pagina si carichi
             WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//b[text()="Avanti"]'))).click()
-            time.sleep(5)
+            time.sleep(random.uniform(5, 10))  # Ritardo casuale tra 5 e 10 secondi
             pagina_corrente += 1
         else:
             break
