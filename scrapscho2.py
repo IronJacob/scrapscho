@@ -20,7 +20,7 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
       Una lista di dizionari, ognuno contenente informazioni su una pubblicazione.
     """
 
-    # Configura il webdriver di Selenium (usa opzioni headless per evitare che il browser si apra)
+    # Configura il webdriver di Selenium 
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3") 
@@ -29,16 +29,15 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
         driver = webdriver.Chrome(options=options)
     except Exception as e:
         print(f"Errore durante l'inizializzazione di ChromeDriver: {e}")
-        return []  # Restituisci una lista vuota in caso di errore
+        return []
 
     # Unisci le parole chiave in una singola stringa di query
     query = ' '.join(keywords)
 
-    # Costruisci l'URL di ricerca di Google Scholar (senza filtri per l'anno)
+    # Costruisci l'URL di ricerca di Google Scholar
     url = f"https://scholar.google.com/scholar?q={query}&hl=it&as_sdt=0,5" 
     driver.get(url)
 
-    # Attendi che la pagina si carichi
     time.sleep(5)
 
     pubblicazioni = []
@@ -51,8 +50,7 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
                 titolo = risultato.select_one('.gs_rt a').text
                 autori = risultato.select_one('.gs_a').text
                 link = risultato.select_one('.gs_rt a')['href']
-                # Estrai l'anno dalla stringa degli autori
-                anno = risultato.select_one('.gs_a').text.split()[-1] 
+                anno = risultato.select_one('.gs_a').text.split()[-1]
 
                 pubblicazioni.append({
                     "titolo": titolo,
@@ -63,12 +61,10 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
             except:
                 pass
 
-        # Controlla se c'è un pulsante "Avanti" e se non abbiamo superato il numero di pagine desiderato
         next_button = driver.find_elements(By.XPATH, '//b[text()="Avanti"]')
         if next_button and pagina_corrente < num_pagine:
-            # Clicca sul pulsante "Avanti" e attendi che la pagina si carichi
             WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//b[text()="Avanti"]'))).click()
-            time.sleep(random.uniform(5, 10))  # Ritardo casuale tra 5 e 10 secondi
+            time.sleep(random.uniform(5, 10))
             pagina_corrente += 1
         else:
             break
@@ -77,18 +73,18 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
     return pubblicazioni
 
 def salva_in_csv(pubblicazioni, nome_file):
-  """
-  Salva le pubblicazioni in un file CSV.
+    """
+    Salva le pubblicazioni in un file CSV.
 
-  Args:
-    pubblicazioni: Una lista di dizionari, ognuno contenente informazioni su una pubblicazione.
-    nome_file: Il nome del file CSV.
-  """
+    Args:
+        pubblicazioni: Una lista di dizionari, ognuno contenente informazioni su una pubblicazione.
+        nome_file: Il nome del file CSV.
+    """
 
-  with open(nome_file, 'w', newline='', encoding='utf-8') as csvfile:
-    writer = csv.DictWriter(csvfile, fieldnames=["titolo", "autori", "anno", "link"])
-    writer.writeheader()
-    writer.writerows(pubblicazioni)
+    with open(nome_file, 'w', newline='', encoding='utf-8') as csvfile:
+        writer = csv.DictWriter(csvfile, fieldnames=["titolo", "autori", "anno", "link"])
+        writer.writeheader()
+        writer.writerows(pubblicazioni)
 
 # Interfaccia Streamlit
 st.title("Ricerca Pubblicazioni su Google Scholar")
@@ -102,11 +98,9 @@ if st.button("Cerca"):
     if keywords:
         pubblicazioni = cerca_pubblicazioni_scholar(keywords, num_pagine)
 
-        # Mostra i risultati in una tabella
         st.write("Risultati:")
         st.table(pubblicazioni)
 
-        # Crea un pulsante per scaricare il file CSV
         salva_in_csv(pubblicazioni, "pubblicazioni_scholar.csv")
         with open("pubblicazioni_scholar.csv", "rb") as f:
             st.download_button("Scarica risultati in CSV", f, file_name="pubblicazioni_scholar.csv")
