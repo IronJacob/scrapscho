@@ -22,13 +22,18 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
     # Configura il webdriver di Selenium (usa opzioni headless per evitare che il browser si apra)
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    driver = webdriver.Chrome(options=options)
+    
+    try:
+        driver = webdriver.Chrome(options=options)
+    except Exception as e:
+        print(f"Errore durante l'inizializzazione di ChromeDriver: {e}")
+        return []  # Restituisci una lista vuota in caso di errore
 
     # Unisci le parole chiave in una singola stringa di query
     query = ' '.join(keywords)
 
     # Costruisci l'URL di ricerca di Google Scholar (senza filtri per l'anno)
-    url = f"https://scholar.google.com/scholar?q={query}&hl=it&as_sdt=0,5"
+    url = f"https://scholar.google.com/scholar?q={query}&hl=it&as_sdt=0,5" 
     driver.get(url)
 
     # Attendi che la pagina si carichi
@@ -45,7 +50,7 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
                 autori = risultato.select_one('.gs_a').text
                 link = risultato.select_one('.gs_rt a')['href']
                 # Estrai l'anno dalla stringa degli autori
-                anno = risultato.select_one('.gs_a').text.split()[-1]
+                anno = risultato.select_one('.gs_a').text.split()[-1] 
 
                 pubblicazioni.append({
                     "titolo": titolo,
