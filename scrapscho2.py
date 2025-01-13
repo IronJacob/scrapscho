@@ -6,24 +6,24 @@ from selenium.webdriver.support import expected_conditions as EC
 from bs4 import BeautifulSoup
 import csv
 import time
-import random
+
 
 def cerca_pubblicazioni_scholar(keywords, num_pagine):
     """
     Cerca su Google Scholar le pubblicazioni in open access.
 
     Args:
-      keywords: Una lista di parole chiave o frasi.
-      num_pagine: Il numero di pagine di risultati da esplorare.
+        keywords: Una lista di parole chiave o frasi.
+        num_pagine: Il numero di pagine di risultati da esplorare.
 
     Returns:
-      Una lista di dizionari, ognuno contenente informazioni su una pubblicazione.
+        Una lista di dizionari, ognuno contenente informazioni su una pubblicazione.
     """
 
-    # Configura il webdriver di Selenium 
+    # Configura il webdriver di Selenium
     options = webdriver.ChromeOptions()
     options.add_argument('--headless')
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3") 
+    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3")
 
     try:
         driver = webdriver.Chrome(options=options)
@@ -34,15 +34,16 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
     # Unisci le parole chiave in una singola stringa di query
     query = ' '.join(keywords)
 
-    # Costruisci l'URL di ricerca di Google Scholar
-    url = f"https://scholar.google.com/scholar?q={query}&hl=it&as_sdt=0,5" 
+    # Costruisci l'URL di ricerca di Google Scholar (senza filtri per l'anno)
+    url = f"https://scholar.google.com/scholar?q={query}&hl=it&as_sdt=0,5"
     driver.get(url)
 
+    # Attendi che la pagina si carichi
     time.sleep(5)
 
     pubblicazioni = []
-    pagina_corrente = 1
-    while pagina_corrente <= num_pagine:
+    pagina_corrente = 1  # Inizializza il contatore della pagina
+    while pagina_corrente <= num_pagine:  # Ciclo fino al raggiungimento del numero di pagine desiderato
         soup = BeautifulSoup(driver.page_source, "html.parser")
 
         for risultato in soup.select('.gs_ri'):
@@ -50,6 +51,7 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
                 titolo = risultato.select_one('.gs_rt a').text
                 autori = risultato.select_one('.gs_a').text
                 link = risultato.select_one('.gs_rt a')['href']
+                # Estrai l'anno dalla stringa degli autori
                 anno = risultato.select_one('.gs_a').text.split()[-1]
 
                 pubblicazioni.append({
@@ -61,11 +63,13 @@ def cerca_pubblicazioni_scholar(keywords, num_pagine):
             except:
                 pass
 
+        # Controlla se c'è un pulsante "Avanti" e se non abbiamo superato il numero di pagine desiderato
         next_button = driver.find_elements(By.XPATH, '//b[text()="Avanti"]')
         if next_button and pagina_corrente < num_pagine:
+            # Clicca sul pulsante "Avanti" e attendi che la pagina si carichi
             WebDriverWait(driver, 10).until(EC.element_to_be_clickable((By.XPATH, '//b[text()="Avanti"]'))).click()
-            time.sleep(random.uniform(5, 10))
-            pagina_corrente += 1
+            time.sleep(5)
+            pagina_corrente += 1  # Incrementa il contatore della pagina
         else:
             break
 
@@ -89,20 +93,24 @@ def salva_in_csv(pubblicazioni, nome_file):
 # Interfaccia Streamlit
 st.title("Ricerca Pubblicazioni su Google Scholar")
 
-keywords_input = st.text_input("Inserisci le parole chiave separate da virgola:")
-keywords = [keyword.strip() for keyword in keywords_input.split(",") if keyword.strip()]
+keywords_input = st.text_input("Inserisci le parole chiave separate da virgola: ")
+keywords = [keyword.strip() for keyword in keywords_input.split(",")]
 
-num_pagine = st.number_input("Inserisci il numero di pagine da esplorare:", min_value=1, value=10)
+# Input utente per il numero di pagine
+while True:
+    try:
+        num_pagine = int(st.number_input("Inserisci il numero di pagine da esplorare: "))
+        break
+    except ValueError:
+        print("Input non valido. Inserisci un numero intero.")
 
 if st.button("Cerca"):
-    if keywords:
-        pubblicazioni = cerca_pubblicazioni_scholar(keywords, num_pagine)
+    # Esegui la ricerca e salva i risultati
+    pubblicazioni = cerca_pubblicazioni_scholar(keywords, num_pagine)
+    salva_in_csv(pubblicazioni, "pubblicazioni_scholar.csv")
 
-        st.write("Risultati:")
-        st.table(pubblicazioni)
+    st.write("Risultati:")
+    st.table(pubblicazioni)
 
-        salva_in_csv(pubblicazioni, "pubblicazioni_scholar.csv")
-        with open("pubblicazioni_scholar.csv", "rb") as f:
-            st.download_button("Scarica risultati in CSV", f, file_name="pubblicazioni_scholar.csv")
-    else:
-        st.warning("Inserisci almeno una parola chiave.")
+    with open("pubblicazioni_scholar.csv", "rb") as f:
+        st.download_button("Scarica risultati in CSV", f, file_name="pubblicazioni_scholar.csv")
